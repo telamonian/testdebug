@@ -1,2 +1,2 @@
-from .testBase import TestBase
+from .testBase import Asserter, TestBase
 from .testRunner import TestRunner

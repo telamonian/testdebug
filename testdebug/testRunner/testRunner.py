@@ -57,7 +57,7 @@ class TestRunner(object):
     def getTestBases(self):
         # get the TestBases and group them by module
         tbByMod = {}
-        for tb in (tb for tb in self.varsDict.values() if isclass(tb) and issubclass(tb, TestBase)):
+        for tb in (tb for tb in self.varsDict.values() if isclass(tb) and tb.__name__[-4:]=='Base'):
             try:
                 tbByMod[tb.__module__].append(tb)
             except KeyError:
@@ -68,9 +68,9 @@ class TestRunner(object):
 
     def getTestCases(self, exportToLocals=False):
         testCases = []
-        for TestBase in self.getTestBases():
-            testCaseName = TestBase.__name__[:-4] + 'Case'
-            TestCase = type(testCaseName, (TestBase, unittest.TestCase), {})
+        for testBase in self.getTestBases():
+            testCaseName = testBase.__name__[:-4] + 'Case'
+            TestCase = type(testCaseName, (testBase, unittest.TestCase), {})
             
             if self.disableCleanUpInt:
                 TestCase.disableCleanUpInt = True
@@ -138,5 +138,7 @@ class TestRunner(object):
 
 if __name__ == '__main__':
     testRunner = TestRunner(varsDict=vars(), localsDict=locals(), disableCleanUpInt=True)
-    testRunner.getTestCases(exportToLocals=True)
     testRunner.main()
+
+    # create the TestCases and export them to this module's namespace
+    # testRunner.getTestCases(exportToLocals=True)
