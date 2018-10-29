@@ -31,7 +31,7 @@ problems.
         'six',
     ],
     extras_require={
-        'optional': ['argcomplete, pytest'],
+        'optional': ['argcomplete', 'pytest'],
     },
 
     packages=find_packages(),
