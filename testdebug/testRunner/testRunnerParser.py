@@ -1,4 +1,4 @@
-from lma.src.helper.parseHelper import ArgProperty, ArgGroup, Parser, SUPPRESS
+from ..helper.parseHelper import ArgProperty, ArgGroup, Parser, SUPPRESS
 
 __all__ = ['TestRunnerParser']
 

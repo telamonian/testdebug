@@ -5,7 +5,6 @@
 ##########################
 
 import os
-import pytest
 from six import print_
 import sys
 import time
@@ -15,11 +14,9 @@ import unittest
 #### project imports ####
 #########################
 
+from ..helper.profileHelper import ProfileDecorator
 from ..testBase import TestBase, color
 from .testRunnerParser import TestRunnerParser
-
-from lma.src.helper.profileHelper import ProfileDecorator
-import lma.src.helper.progressBarHelper as pbrHlp
 
 #####################################################
 #### uncomment below to treat warnings as errors ####
@@ -49,11 +46,7 @@ class TestRunner(object):
         ('truncate',  int(1e6)),
     ])
 
-    def __init__(self, varsDict, localsDict, disableCleanUpInt=False, disableProgressBars=True):
-        if disableProgressBars:
-            # turn off progress bars program-wide when testing
-            pbrHlp.pbars.disable()
-
+    def __init__(self, varsDict, localsDict, disableCleanUpInt=False):
         self.parser = TestRunnerParser(description=self.helpMessage)
 
         self.varsDict = varsDict
@@ -109,6 +102,8 @@ class TestRunner(object):
         TestBase.cleanAll(dryrun=False, verbose=True)
 
     def runPytest(self, **kwargs):
+        import pytest
+
         thisScriptPath = os.path.realpath(__file__)
         pytest.main(args= thisScriptPath + ' -s', **kwargs)
 
