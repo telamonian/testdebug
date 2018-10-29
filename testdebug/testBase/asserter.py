@@ -63,7 +63,9 @@ class _AssertNotRaisesContext(_AssertRaisesContext):
 class AsserterMetaclass(type):
     def __new__(cls, clsname, bases, dct):
         # add all of the asserts defined in unittest.TestCase that are not defined in Asserter
-        dctWithAsserts = {k:v for k,v in vars(unittest.TestCase) if k.startswith('assert') and ismethod(v) and 'deprecated' not in v.__name__}
+        dctWithAsserts = {k:v
+                          for k,v in vars(unittest.TestCase).items()
+                          if k.startswith('assert') and ismethod(v) and 'deprecated' not in v.__name__}
         dctWithAsserts.update(dct)
 
         return super(AsserterMetaclass, cls).__new__(cls, clsname, bases, dct)

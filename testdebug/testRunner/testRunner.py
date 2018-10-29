@@ -4,6 +4,7 @@
 #### external imports ####
 ##########################
 
+from inspect import isclass
 import os
 from six import print_
 import sys
@@ -56,7 +57,7 @@ class TestRunner(object):
     def getTestBases(self):
         # get the TestBases and group them by module
         tbByMod = {}
-        for tb in (tb for tb in self.varsDict.values() if issubclass(tb, TestBase)):
+        for tb in (tb for tb in self.varsDict.values() if isclass(tb) and issubclass(tb, TestBase)):
             try:
                 tbByMod[tb.__module__].append(tb)
             except KeyError:
@@ -135,8 +136,7 @@ class TestRunner(object):
         print_(color('FAIL' if testFailCount else 'OKGREEN', '%d tests failed' % testFailCount))
         print_(                                              '%d test cases finished, %.3f seconds' % (testCaseCount, time.time() - start))
 
-testRunner = TestRunner(varsDict=vars(), localsDict=locals(), disableCleanUpInt=True)
-testRunner.getTestCases(exportToLocals=True)
-
 if __name__ == '__main__':
+    testRunner = TestRunner(varsDict=vars(), localsDict=locals(), disableCleanUpInt=True)
+    testRunner.getTestCases(exportToLocals=True)
     testRunner.main()
