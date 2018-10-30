@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from ..helper.parseHelper import ArgProperty, ArgGroup, Parser, SUPPRESS
 
 __all__ = ['TestRunnerParser']
@@ -6,6 +8,7 @@ class TestRunnerParser(Parser):
     def genDefaultArgGroups(self):
         # group of args relating to how the tests are executed
         testExecArgs = ArgGroup('testExecArgs',
+            ArgProperty('path', nargs='*', type=Path, help='File system path for test auto-discovery. Path will be recursively searched, and all contained TestBases will be imported.'),
             ArgProperty('-c', '--clean', action='store_true', help='Setting this flag deletes all files that have been automatically created by tests.'),
             ArgProperty('-d', '--debug', action='store_true', help='Setting this flag formats output from test failures in such a way as to ease inclusion of newly calculated values in future tests.'),
             ArgProperty('-f', '--failslow', action='store_true', help='Setting this flag will cause test execution to continue on errors. This will likely have the undesired effect of preventing breaking on fatal exception.'),

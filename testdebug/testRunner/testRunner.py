@@ -15,7 +15,7 @@ import unittest
 #### project imports ####
 #########################
 
-from ..helper.profileHelper import ProfileDecorator
+from ..helper import importHelper as impHlp, profileHelper as profHlp
 from ..testBase import TestBase, color
 from .testRunnerParser import TestRunnerParser
 
@@ -54,6 +54,9 @@ class TestRunner(object):
         self.localsDict = localsDict
         self.disableCleanUpInt = disableCleanUpInt
 
+    def addTestPkg(self, fullname):
+        impHlp.DeepImport(fullname=fullname, attrs=['*'], attrFilter='Base$', locals=locals())
+
     def getTestBases(self):
         # get the TestBases and group them by module
         tbByMod = {}
@@ -82,6 +85,9 @@ class TestRunner(object):
 
     def main(self, **kwargs):
         self.parser.run()
+
+        if self.parser['path']:
+            impHlp.DeepImport(path=self.parser['path'], attrs=['*'], attrFilter='Base$', locals=locals())
 
         if self.parser['clean']:
             self.clean()
@@ -124,7 +130,7 @@ class TestRunner(object):
             TestCase.setErrorMsgKwargs(**errorMsgKwargs)
 
             if profile:
-                testCasePassCount,testCaseFailCount,testCaseTime = ProfileDecorator()(TestCase.runSimple)(failslow=failslow)
+                testCasePassCount,testCaseFailCount,testCaseTime = profHlp.ProfileDecorator()(TestCase.runSimple)(failslow=failslow)
             else:
                 testCasePassCount,testCaseFailCount,testCaseTime = TestCase.runSimple(failslow=failslow)
 

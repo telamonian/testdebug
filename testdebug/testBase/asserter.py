@@ -13,9 +13,11 @@ from .asserterSkeleton import AsserterSkeleton
 __all__ = ['Asserter']
 
 def _coerceArray(array):
-    """Basically the same thing as np.asanyarray, but also appropriately coerces generators into arrays
+    """Basically the same thing as np.asanyarray, but also appropriately coerces Nonetypes and generators into arrays.
     """
-    if isinstance(array, types.GeneratorType):
+    if array is None:
+        return np.array([])
+    elif isinstance(array, types.GeneratorType):
         return np.asanyarray(tuple(array))
     else:
         return np.asanyarray(array)
