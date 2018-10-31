@@ -48,7 +48,8 @@ class TestRunner(object):
         ('truncate',  int(1e6)),
     ])
 
-    def __init__(self, root=None, localsDict=None, varsDict=None, disableCleanUpInt=True):
+    def __init__(self, fullnameDefault=None, root=None, localsDict=None, varsDict=None, disableCleanUpInt=True):
+        self.fullnameDefault = fullnameDefault
         self.root = root
         self.localsDict = localsDict
         self.varsDict = varsDict
@@ -96,7 +97,14 @@ class TestRunner(object):
     def main(self, **kwargs):
         self.parser.run()
 
-        self.discoverInPath(self.parser['path'])
+        if 'fullname' in self.parser:
+            self.discoverInFullname(self.parser['fullname'])
+        if 'path' in self.parser:
+            self.discoverInPath(self.parser['path'])
+
+        if not ('fullname' in self.parser or 'path' in self.parser or self.fullnameDefault is None):
+            # default fallback test discovery if no discovery options are specified on cmd line
+            self.discoverInFullname(self.fullnameDefault)
 
         if self.parser['clean']:
             self.clean()
@@ -118,7 +126,11 @@ class TestRunner(object):
         TestBase.cleanAll(dryrun=False, verbose=True)
 
     def discoverInFullname(self, fullname):
-        return self.testBaseDict.update(impHlp.DeepImport(fullname=fullname, attrs=['*'], attrFilter='Base$', locals=self.localsDict))
+        if isinstance(fullname, str):
+            fullname = [fullname]
+
+        for fn in fullname:
+            return self.testBaseDict.update(impHlp.DeepImport(fullname=fn, attrs=['*'], attrFilter='Base$', locals=self.localsDict))
 
     def discoverInPath(self, path):
         for pth in (Path(pth) for pth in path):
