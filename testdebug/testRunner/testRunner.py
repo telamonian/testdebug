@@ -4,8 +4,9 @@
 #### external imports ####
 ##########################
 
-from inspect import isclass
+import inspect
 import os
+from pathlib import Path
 from six import print_
 import sys
 import time
@@ -47,20 +48,29 @@ class TestRunner(object):
         ('truncate',  int(1e6)),
     ])
 
-    def __init__(self, varsDict, localsDict, disableCleanUpInt=False):
+    def __init__(self, root=None, localsDict=None, varsDict=None, disableCleanUpInt=True):
+        self.root = root
+        self.localsDict = localsDict
+        self.varsDict = varsDict
+
+        _frame = inspect.currentframe().f_back
+        try:
+            _module = inspect.getmodule(_frame)
+            if self.root is None: self.root = Path(os.path.dirname(os.path.abspath(_module.__file__ ))) if root is None else Path(root)
+            if self.localsDict is None: self.localsDict = _frame.f_locals
+            if self.varsDict is None: self.varsDict = vars(_module)
+        finally:
+            del _frame
+
         self.parser = TestRunnerParser(description=self.helpMessage)
 
-        self.varsDict = varsDict
-        self.localsDict = localsDict
         self.disableCleanUpInt = disableCleanUpInt
-
-    def addTestPkg(self, fullname):
-        impHlp.DeepImport(fullname=fullname, attrs=['*'], attrFilter='Base$', locals=locals())
+        self.testBaseDict = {}
 
     def getTestBases(self):
         # get the TestBases and group them by module
         tbByMod = {}
-        for tb in (tb for tb in self.varsDict.values() if isclass(tb) and tb.__name__[-4:]=='Base'):
+        for tb in (tb for tb in self.varsDict.values() if inspect.isclass(tb) and tb.__name__[-4:]=='Base'):
             try:
                 tbByMod[tb.__module__].append(tb)
             except KeyError:
@@ -86,8 +96,7 @@ class TestRunner(object):
     def main(self, **kwargs):
         self.parser.run()
 
-        if self.parser['path']:
-            impHlp.DeepImport(path=self.parser['path'], attrs=['*'], attrFilter='Base$', locals=locals())
+        self.discoverInPath(self.parser['path'])
 
         if self.parser['clean']:
             self.clean()
@@ -107,6 +116,26 @@ class TestRunner(object):
 
     def clean(self):
         TestBase.cleanAll(dryrun=False, verbose=True)
+
+    def discoverInFullname(self, fullname):
+        return self.testBaseDict.update(impHlp.DeepImport(fullname=fullname, attrs=['*'], attrFilter='Base$', locals=self.localsDict))
+
+    def discoverInPath(self, path):
+        for pth in (Path(pth) for pth in path):
+            try:
+                # use name parts of pth relative to self.root
+                name = '.'.join(pth.relative_to(self.root).with_suffix('').parts)
+            except ValueError:
+                if not pth.is_absolute():
+                    # use name parts from a relative path
+                    name = '.'.join(pth.with_suffix('').parts)
+                else:
+                    # leave name blank
+                    name = None
+
+            self.testBaseDict.update(impHlp.DeepImport(path=pth, name=name, attrs=['*'], attrFilter='Base$', locals=self.localsDict))
+
+        return self.testBaseDict
 
     def runPytest(self, **kwargs):
         import pytest

@@ -33,8 +33,7 @@ def _filterCheck(s, regexFilter, clusivity):
 def ShallowImport(path=None, name=None, fullname=None, attrs=None, locals=None,
                   attrFilter=None, attrFilterClusivity='include',
                   nameFilter=None, nameFilterClusivity='include',
-                  skipModules=False, skipPkgs=False, shortNames=False,
-                  _deep=False, onerror=None):
+                  skipModules=False, skipPkgs=False, _deep=False, onerror=None):
     """imports every module and package in path into the name namespace
     eg. ShallowImport(path='/real/system/path', name='foo.bar') would
     return {'foo.bar.re': <foo.bar.re mod>, 'foo.bar.baa': <foo.bar.baa mod>}
@@ -43,7 +42,7 @@ def ShallowImport(path=None, name=None, fullname=None, attrs=None, locals=None,
     the path and name of the pkg containing fullname are used
 
     use in a __init__.py file verbatim like this:
-        modDict = ShallowImport(path=__path__, name=__name__, shortNames=True)
+        modDict = ShallowImport(path=__path__, name=__name__)
         locals().update(modDict)
     """
     if path is None == fullname is None:
@@ -62,14 +61,21 @@ def ShallowImport(path=None, name=None, fullname=None, attrs=None, locals=None,
         except AttributeError:
             raise ValueError("Could not determine path and name from fullname.\n"
                              "fullname: %s" % fullname)
-    elif name is None:
-        name = Path(path).stem
-
-    if shortNames:
-        # wihtout a prefix, everything will be imported directly in the caller's namespace
-        prefix = ''
     else:
-        prefix = name + '.'
+        if isinstance(path, (str, Path)):
+            # the pkg iter funcs expect path to be a list
+            path = [str(path)]
+        else:
+            # ensure the contents of path are str
+            path = [str(pth) for pth in path]
+
+            # TODO: add support for multiple pth in path
+            if len(path) != 1:
+                raise ValueError("path should contain exactly one pth.\n"
+                                 "path: %s" % path)
+
+    # wihtout a prefix, everything will be imported directly in the caller's namespace
+    prefix = name + '.' if name else ''
 
     importedDict = {}
     for importer, modName, isPkg in iterFunc(path=path, prefix=prefix, onerror=onerror):
@@ -84,7 +90,8 @@ def ShallowImport(path=None, name=None, fullname=None, attrs=None, locals=None,
             continue
         if nameFilter is not None and _filterCheck(modName, nameFilter, nameFilterClusivity):
             continue
-        mod = importlib.import_module(modName)
+        mod = importer.find_module(modName).load_module(modName)
+        # mod = importlib.import_module(modName)
 
         # if shortNames:
         #     # strip any parent packages off of the mod's dot-name
@@ -93,12 +100,9 @@ def ShallowImport(path=None, name=None, fullname=None, attrs=None, locals=None,
         if attrs is not None:
             # iter through the provided attrs
             for attr in attrs:
-                if attrFilter is not None and _filterCheck(attr, attrFilter, attrFilterClusivity):
-                    continue
-
                 if attr=='*':
                     # import all attrs listed in module's __all__
-                    for allattr in getattr(mod, __all__, []):
+                    for allattr in getattr(mod, '__all__', []):
                         if attrFilter is not None and _filterCheck(allattr, attrFilter, attrFilterClusivity):
                             continue
 
@@ -107,7 +111,10 @@ def ShallowImport(path=None, name=None, fullname=None, attrs=None, locals=None,
                     # import the top level module
                     importedDict[modName] = mod
                 else:
-                    # import the specific attr
+                    # import the specific attr, if not filtered
+                    if attrFilter is not None and _filterCheck(attr, attrFilter, attrFilterClusivity):
+                        continue
+
                     importedDict[attr] = getattr(mod, attr)
         else:
             # just import the top level module
@@ -123,8 +130,7 @@ def ShallowImport(path=None, name=None, fullname=None, attrs=None, locals=None,
 def DeepImport(path=None, name=None, fullname=None, attrs=None, locals=None,
                attrFilter=None, attrFilterClusivity='include',
                nameFilter=None, nameFilterClusivity='include',
-               skipModules=False, skipPkgs=False, shortNames=False,
-               onerror=None):
+               skipModules=False, skipPkgs=False, onerror=None):
     """Same as ShallowImport except that it recursively walks the submodules
     """
     return ShallowImport(
@@ -139,7 +145,6 @@ def DeepImport(path=None, name=None, fullname=None, attrs=None, locals=None,
         nameFilterClusivity=nameFilterClusivity,
         skipModules=skipModules,
         skipPkgs=skipPkgs,
-        shortNames=shortNames,
         _deep=True,
         onerror=onerror)
 
